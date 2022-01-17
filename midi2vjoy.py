@@ -59,22 +59,45 @@ def midi_test():
 def read_conf(conf_file):
 	'''Read the configuration file'''
 	table = {}
-	vids = []
-	with open(conf_file, 'r') as f:
-		for l in f:
-			if len(l.strip()) == 0 or l[0] == '#':
+	vjoy_ids = []
+	MAPPING_TYPE_POS = 0
+	MIDI_TYPE_POS = 1
+	MIDI_DATA1_POS = 2
+	VJOY_ID_POS = 3
+	VJOY_MAP_POS = 4
+	with open(conf_file, 'r') as file:
+		for line in file:
+			# Skip empty lines and lines staring with '#'
+			if len(line.strip()) == 0 or line[0] == '#':
 				continue
-			fs = l.split()
-			key = (int(fs[0]), int(fs[1]))
-			if fs[0] == '144':
-				val = (int(fs[2]), int(fs[3]))
+			# Get the conf values from the line
+			confvalues = line.split()
+			
+			# Get the Mapping type 
+			maptype = confvalues[MAPPING_TYPE_POS]
+
+			# Get the MIDI event identifiers
+			midikey = (int(confvalues[MIDI_TYPE_POS]), int(confvalues[MIDI_DATA1_POS]))
+
+			# If we treat the line as a button conf, use an integer to refer to the vjoy button
+			if maptype == 'B':
+				vjoykey = (int(confvalues[VJOY_ID_POS]), int(confvalues[VJOY_MAP_POS]))
+			elif maptype == 'A': # If an axis, use a string to refer to the vjoy axis
+				vjoykey = (int(confvalues[VJOY_ID_POS]), confvalues[VJOY_MAP_POS])
+			elif maptype == 'R': # If a 360 rotary encoder, map each direction as a button 
+				vjoykey = (int(confvalues[VJOY_ID_POS]), confvalues[VJOY_MAP_POS])
 			else:
-				val = (int(fs[2]), fs[3])
-			table[key] = val
-			vid = int(fs[2])
-			if not vid in vids:
-				vids.append(vid)
-	return (table, vids)
+				print("Unrecognized button/axis type identifier '"+maptype+"' in conf file")
+
+				# Store the midi to vjoy mapping in the mapping table
+			table[midikey] = (maptype, vjoykey)
+
+			vjoy_id = int(confvalues[VJOY_ID_POS])
+			
+			# If this line contains a previously unregistered Virtual joystick ID, add it to the list
+			if not vjoy_id in vjoy_ids:
+				vjoy_ids.append(vjoy_id)
+	return (table, vjoy_ids)
 		
 def joystick_run():
 	# Process the configuration file
@@ -84,9 +107,10 @@ def joystick_run():
 	try:
 		if options.verbose:
 			print('Opening configuration file:', options.conf)
-		(table, vids) = read_conf(options.conf)
-		#print(table)
-		#print(vids)
+		(table, vjoy_ids) = read_conf(options.conf)
+		if options.verbose:
+			print(table)
+			print(vjoy_ids)
 	except:
 		print('Error processing the configuration file:', options.conf)
 		return
@@ -106,64 +130,82 @@ def joystick_run():
 	# Load vJoysticks
 	try:
 		# Load the vJoy library
-		# Load the registry to find out the install location
-		vjoyregkey = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, 'SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\{8E31F76F-74C3-47F1-9550-E041EEDC5FBB}_is1')
-		installpath = winreg.QueryValueEx(vjoyregkey, 'InstallLocation')
-		winreg.CloseKey(vjoyregkey)
 		#print(installpath[0])
-		dll_file = os.path.join(installpath[0], 'x64', 'vJoyInterface.dll')
+		dll_file = "C:\\Program Files\\vJoy\\x64\\vJoyInterface.dll"
 		vjoy = ctypes.WinDLL(dll_file)
-		#print(vjoy.GetvJoyVersion())
-		
+		if options.verbose:
+			print("vJoy DLL Version: "+str(vjoy.GetvJoyVersion()))
+			
+	except:
+		print('Error initializing the vJoy DLL')
+		return
+	try:	
 		# Getting ready
-		for vid in vids:
+		for vid in vjoy_ids:
 			if options.verbose:
 				print('Acquiring vJoystick:', vid)
 			assert(vjoy.AcquireVJD(vid) == 1)
 			assert(vjoy.GetVJDStatus(vid) == 0)
 			vjoy.ResetVJD(vid)
 	except:
-		#traceback.print_exc()
-		print('Error initializing virtual joysticks')
+		print('Error initializing virtual joysticks. Make sure vJoy is configured correctly')
 		return
 	
 	try:
-		if options.verbose:
-			print('Ready. Use ctrl-c to quit.')
+		print('midi2vjoy Ready. Use ctrl-c to quit.')
 		while True:
 			while midi.poll():
-				ipt = midi.read(1)
-				#print(ipt)
-				key = tuple(ipt[0][0][0:2])
-				reading = ipt[0][0][2]
-				# Check that the input is defined in table
-				print(key, reading)
-				if not key in table:
-					continue
-				opt = table[key]
+				input = midi.read(1)
+				#print(input)
+				midikey = tuple(input[0][0][0:2])
+				datareading = input[0][0][2]
+				# Check that the input is defined in table, otherwise skip
 				if options.verbose:
-					print(key, '->', opt, reading)
-				if key[0] == 176:
+					print(midikey, datareading)
+				if not midikey in table:
+					continue
+				maptype = table[midikey][0]
+				output = table[midikey][1]
+				joy_id = output[0]
+				joy_mapping = output[1]
+				if maptype == "A":
 					# A slider input
 					# Check that the output axis is valid
 					# Note: We did not check if that axis is defined in vJoy
-					if not opt[1] in axis:
+					if not joy_mapping in axis:
 						continue
-					reading = (reading + 1) << 8
-					vjoy.SetAxis(reading, opt[0], axis[opt[1]])
-				elif key[0] == 144:
+					datareading = (datareading + 1) << 8
+					vjoy.SetAxis(datareading, output[0], axis[joy_mapping])
+				elif maptype == "B":
 					# A button input
-					vjoy.SetBtn(reading, opt[0], int(opt[1]))
-				elif key[0] == 128:
+					vjoy.SetBtn(datareading, output[0], int(joy_mapping))
+				elif maptype == "R":
+					# Rotary encoder input
+					directionbuttons = joy_mapping.split(',')
+					if datareading == 1:
+						joy_mapping = directionbuttons[0]
+						vjoy.SetBtn(127,output[0], int(joy_mapping))
+						time.sleep(0.02)
+						vjoy.SetBtn(0,joy_id, int(joy_mapping))
+					elif datareading == 127:
+						joy_mapping = directionbuttons[1]
+						vjoy.SetBtn(127, joy_id, int(joy_mapping))
+						time.sleep(0.02)
+						vjoy.SetBtn(0,joy_id, int(joy_mapping))
+				elif midikey[0] == 128:
 					# A button off input
-					vjoy.SetBtn(reading, opt[0], int(opt[1]))
-			time.sleep(0.1)
+					vjoy.SetBtn(datareading, joy_id, int(joy_mapping))
+					
+				if options.verbose:
+					print(midikey, '->', output, datareading)
+
+			time.sleep(0.05)
 	except:
-		#traceback.print_exc()
+		traceback.print_exc()
 		pass
 		
 	# Relinquish vJoysticks
-	for vid in vids:
+	for vid in vjoy_ids:
 		if options.verbose:
 			print('Relinquishing vJoystick:', vid)
 		vjoy.RelinquishVJD(vid)
