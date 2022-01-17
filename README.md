@@ -48,13 +48,13 @@ A			176			6			1		X```
 will assign MIDI control 176:6 to vJoystick number 1, interpret it as an Axis and assign it to joystick axis 'X'. 
 
 Respectively:
-`# Type		Status		Data1		vJoy	Mapping
-B			154			2			1		2`
+```# Type		Status		Data1		vJoy	Mapping
+B			154			2			1		2```
 will assign MIDI control 154:2 to vJoystick number 1, interpret it as a Button and assign it to joystic kbutton 2.
 
 The special case for configuration lines is the case of the Rotary encoder that can spin freely in two directions and has no stops or position information. These require a two-button mapping, one for each direction.
-`# Type		Status		Data1		vJoy	Mapping
-R			177			2			1		8,9
+```# Type		Status		Data1		vJoy	Mapping
+R			177			2			1		8,9```
 will assign MIDI control 177:2 to vJoystick number 1, interpret it as a Rotary encoder and assign the up direction to button 8, and the down direction to button 9
 
 ### 2.5 Running midi2vjoy-evolution
