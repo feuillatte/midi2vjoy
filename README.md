@@ -54,7 +54,7 @@ Respectively:
 # Type		Status		Data1		vJoy	Mapping
 B			154			2			1		2
 ```
-will assign MIDI control 154:2 to vJoystick number 1, interpret it as a Button and assign it to joystic kbutton 2.
+will assign MIDI control 154:2 to vJoystick number 1, interpret it as a Button and assign it to joystick button 2.
 
 The special case for configuration lines is the case of the Rotary encoder that can spin freely in two directions and has no stops or position information. These require a two-button mapping, one for each direction.
 ```
