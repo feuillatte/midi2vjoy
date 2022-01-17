@@ -3,25 +3,27 @@
 ## 1. Introduction
 
 midi2vjoy evolution is based on midi2vjoy by c0redumb from 2017 https://github.com/c0redumb/midi2vjoy 
-This software provides a way to use MIDI controllers to provide data for vJoy joysticks on Windows, by mapping MIDI inputs to virtual joystick controls.
+As per the original python code from c0redumb, the midi2vjoy python code is licensed under the GNU General Public License 2.0.
+
+This software provides a way to use MIDI controllers to provide data for **vJoy joysticks on Windows**, by mapping MIDI inputs to virtual joystick controls.
 These virtual joystick devices created using vJoy can then be mapped to controls in games and simulators as if they were real game controllers.
 
 The largest change from the original midi2vjoy by c0redumb is the decoupling of MIDI status bytes from MIDI control type classification, as this did not work on most MIDI controllers I tested. For this reason, a modified configuration file format is used, with manual classification of the desired control type. The current options are 'B' for Button, 'A' for Axis and 'R' for rotary encoders treated as two directional buttons.
 The midi2vjoy-evolution fork currently supports any midi inputs but relies on the user to select the correct control type.
 
-As per the original python code from c0redumb, the midi2vjoy python code is licensed under the GNU General Public License 2.0.
+Note: if you're not familiar with command-line interfaces and writing configuration files, you may have difficulties using this software.
 
 ## 2. How to use the software
 
 ### 2.1. Setup
 
-1. Download and install vJoy from https://github.com/shauleiz/vJoy/releases
+1. Download and install **vJoy** from https://github.com/shauleiz/vJoy/releases
 2. Use the vJoyConf tool ("vJoy" ->"Configure vJoy") to define the virtual joysticks, [see details in 2.2](#22-configure-vjoy).
 3. Install python 3.6 or later
 4. Install pygame for midi support e.g. by executing the command line `pip install pygame`
-4. Run `python midi2vjoy -t` to figure out the MIDI control outputs to include in your configuration file. [see details in 2.3](#23-test-midi-device).
+4. Run `python midi2vjoy.py -t` to figure out the MIDI control outputs to include in your configuration file. [see details in 2.3](#23-test-midi-device).
 5. Write/edit the mapping configuration file, [see details in 2.4](#24-edit-mapping-configuration-file).
-6. Run `midi2vjoy.py -m <midi device id> -c <path to configuration file>", where midi is the midi device and conf is the configuration file. If your vJoy installation is portable or otherwise nonstandard, you can specify the path to the vjoyinterface.dll file using the `--dll` option. This may be necessary when the vJoy installer freezes at the end of installation and doesn't create the correct windows registry entries for DLL autodiscovery.
+6. Run `midi2vjoy.py -m <midi device id> -c <path to configuration file>`, where midi is the midi device and conf is the configuration file. If your vJoy installation is portable or otherwise nonstandard, you can specify the path to the vjoyinterface.dll file using the `--dll` option. This may be necessary when the vJoy installer freezes at the end of installation and doesn't create the correct windows registry entries for DLL autodiscovery.
 
 ### 2.2. Configure vJoy
 
