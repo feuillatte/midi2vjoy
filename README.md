@@ -3,7 +3,7 @@
 ## 1. Introduction
 
 midi2vjoy evolution is based on midi2vjoy by c0redumb from 2017 https://github.com/c0redumb/midi2vjoy 
-As per the original python code from c0redumb, the midi2vjoy python code is licensed under the GNU General Public License 2.0.
+As per the original python code from c0redumb, the midi2vjoy python code is licensed under the BSD 2-Clause License
 
 This software provides a way to use MIDI controllers to provide data for **vJoy joysticks on Windows**, by mapping MIDI inputs to virtual joystick controls.
 These virtual joystick devices created using vJoy can then be mapped to controls in games and simulators as if they were real game controllers.
